@@ -1,0 +1,291 @@
+<html>
+    <head>
+        <title>MasterMo</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=0">
+        <link rel='shortcut icon' href='favicon.ico' type='image/x-icon' />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.10/vue.min.js"></script>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <style>
+        .letterStatus0 {
+            background-color: #f6f6f6;
+            border: 1px solid #eee;
+        }
+        .letterStatus1 {
+            background-color: #ffcbc1;
+            border: 1px solid #f6c6b6;
+        }
+        .letterStatus2 {
+            background-color: #ffffd1;
+            border: 1px solid #f6f6c9;
+        }
+        .letterStatus3 {
+            background-color: #dbffd6;
+            border: 1px solid #d6f6d0;
+        }
+        .letterStatus4 {
+            background-color: #C2DFFF;
+            border: 1px solid #ADDFFF;
+        }
+        .letterDiv {
+            border-radius: 3px;
+            width: 2.3em;
+            float:left;
+            text-transform: uppercase;
+            text-align: center;
+            margin: 0 0 5px 5px;
+            cursor: pointer;
+            line-height: 2em;
+            font-weight: 500;
+            font-size: 1.1em;
+        }
+        .answerDiv {
+            float:left;
+            padding-left: 10px;
+            font-size: 20px;
+        }
+        .wordDiv {
+            clear:left;
+        }
+        .keyboardLetter {
+            border: 1px solid #ddd;
+            background-color: #fff;
+            border-radius: 3px;
+            width: 8%;
+            float:left;
+            text-transform: uppercase;
+            text-align: center;
+            margin: 0 0 5px 5px;
+            line-height: 40px;
+            font-weight: 400;
+            font-size: 1.4em;
+        }
+        .keyboard {
+            width: 100%;
+            background-color: #eee;
+            position: fixed;
+            bottom: 0;
+            margin-left: -10px;
+        }
+        .wordLabel {
+            text-transform: uppercase;
+            font-size: 1.3em;
+            clear:left;
+            margin-left: 20px;
+            height: 500px;
+        }
+        .wordField {
+            text-transform: uppercase;
+            outline: none;
+            font-size: 1.3em;
+        }
+    </style>
+    </head>
+    <body>
+
+        <div id="app" class="form-horizontal" style="margin-top:10px; margin-left: 10px;">
+            <div style="clear: left; margin-top:5px">
+                <div style="float:left; width: 4em">&nbsp;{{ gameNumber > 0 ? "# " + gameNumber : "" }}</div>
+                <button @click="newGame" type="submit" class="btn btn-primary  btn-sm" style="margin-left:10px;">New</button> &nbsp; <button @click="clearColors" type="submit" class="btn btn-info btn-sm" style="margin-left:10px;">Clear</button>&nbsp; <button @click="abort" type="submit" class="btn btn-warning btn-sm" style="margin-left:10px;"> Abort </button> &nbsp; {{ playerName ? playerName : "?!" }}
+            </div>
+            <div style="clear:left; padding-top: 10px; padding-bottom:10px">
+                <div class="wordDiv" v-for="(word, wordIndex) in progress">
+                    <div class="letterDiv" v-for="(letter, letterIndex) in word" v-bind:class="colorClass(letter.status)" @click="clickLetter(wordIndex, letterIndex)"> {{ letter.letter }} </div>
+                    <div class="answerDiv" v-html="answers[wordIndex]"></div>
+                </div>
+            </div>
+            <div class="wordLabel">{{ currentWord }}</div>
+
+            <div class="keyboard">
+                <div style="padding-top: 7px; background-color:#eee; clear: left">
+                    <div class="keyboardLetter" v-for="(letter, index) in keyboardRow1" @click="tapKey(letter)">{{ letter }}</div>
+                </div>
+                <div style="margin-top:5px; background-color:#errorMessage; clear: left">
+                    <div class="keyboardLetter" v-for="(letter, index) in keyboardRow2" @click="tapKey(letter)">{{ letter }}</div>
+                    <div class="keyboardLetter" style="font-size: 0.8em" @click="tapKey('delete')">&#9003;</div>
+                </div>
+                <div style="margin-top:5px; background-color:#eee; clear: left">
+                    <div class="keyboardLetter" v-for="(letter, index) in keyboardRow3" @click="tapKey(letter)">{{ letter }}</div>
+                    <div class="keyboardLetter" style="width: 20%; margin-left:20px" @click="tapKey('return')">&#8629;</div>
+                </div>
+                <div style="padding-top: 7px; background-color:#eee; clear: left">
+                    <div class="keyboardLetter" style="color:#999"  v-for="(letter, index) in keyboardRow4" @click="tapKey(letter)">{{ letter }}</div>
+                </div>
+                <div><br></div>
+            </div>
+
+
+        </div>
+
+
+
+        <script type="text/javascript">
+
+            var imported = document.createElement("script");
+            imported.src = "words.js";
+            document.head.appendChild(imported);
+
+            var Vue = new Vue({
+                el: "#app",
+                data: {
+                    progressText: "",
+                    progress: [],
+                    answers: [],
+                    theWord: "",
+                    currentWord: "",
+                    verse: "",
+                    errorMessage: "&nbsp;",
+                    didStart: false,
+                    gameNumber: 0,
+                    abortCount: 0,
+                    didWin: false,
+                    playerName: "",
+                    keyboardRow1: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+                    keyboardRow2: ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+                    keyboardRow3: ["Z", "X", "C", "V", "B", "N", "M"],
+                    keyboardRow4: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+                },
+
+                computed: {
+                    hasMistake : function() {
+                        return this.didStart && (this.verse.toLowerCase() != this.mainVerse.substring(0, this.verse.length).toLowerCase() )
+                    },
+
+                    didComplete: function() {
+                        return this.didStart && this.verse.toLowerCase() == this.mainVerse.toLowerCase()
+                    }
+                },
+
+                created: function() {
+                    this.playerName = location.search.substring(1).toUpperCase();
+                },
+
+                methods: {
+
+                    colorClass(status) {
+                        return "letterStatus" + status
+                    },
+
+                    newGame: function() {
+                        this.gameNumber = Math.floor(Math.random() * commonWords.length)
+
+                        if (this.currentWord > 1 && this.currentWord < 366) {
+                            this.gameNumber = this.currentWord
+                        }
+
+                        this.theWord = commonWords[this.gameNumber]
+                        this.answers = []
+                        this.progress = []
+                        this.errorMessage = "&nbsp;"
+                        this.currentWord = ""
+                        this.didWin = false
+                        this.playerName = location.search.substring(1).toUpperCase();
+                    },
+
+                    abort: function() {
+                        this.abortCount++
+                        if (this.abortCount >= 2) {
+                            this.abortCount = 0
+                            $.get("http://impleto.com/mastersco", { who: this.playerName, word:this.theWord, number: this.gameNumber, score: 12 });
+                            this.newGame();
+
+                        }
+                    },
+
+                    clickLetter: function(wordIndex, letterIndex) {
+                        this.progress[wordIndex][letterIndex].status++;
+                        if (this.progress[wordIndex][letterIndex].status > 4) { this.progress[wordIndex][letterIndex].status = 0 }
+                        $( "#wordField" ).focus();
+                    },
+
+                    clearColors: function() {
+                        for (i = 0; i < this.progress.length; i++) {
+                            for (j = 0; j < this.progress[i].length; j++) {
+                                this.progress[i][j].status = 0
+                            }
+                        }
+                    },
+
+                    tapKey: function(letter) {
+                        if (letter == "delete") {
+                            this.currentWord = this.currentWord.slice(0, -1)
+                        } else if (letter == "return") {
+                            this.submitWord()
+                        } else {
+                            this.currentWord += letter
+                        }
+                    },
+
+                    submitWord: function() {
+
+                        if (this.didWin) {
+                            return
+                        }
+
+                        if (this.theWord == "") {
+                            this.gameNumber = Math.floor(Math.random() * commonWords.length)
+                            this.theWord = commonWords[this.gameNumber]
+                        }
+
+                        var c = 0
+                        var nc = 0
+
+                        var word = this.currentWord.toLowerCase()
+
+                        if (word.length != 5) {
+                            this.errorMessage = "5 letters only"
+                            return
+                        }
+
+                        if (allWords.indexOf(word) < 0) {
+                            this.errorMessage = "Only valid words with no duplicate letters"
+                            return
+                        }
+
+                        var letters = []
+
+                        for (i = 0; i < word.length; i++) {
+                            letters.push( { letter: word[i], status: 0 } )
+                            if (word[i] == this.theWord[i]) {
+                                c++
+                            } else {
+                                if (this.theWord.indexOf(word[i]) > -1) {
+                                    nc++
+                                }
+                            }
+                        }
+
+                        this.progress.push(letters)
+
+                        var answer = ""
+
+                        this.progressText += this.currentWord.toUpperCase() + "  "
+
+                        for (i = 0; i < c; i++) {
+                            answer += "&#9632; "
+                        }
+                        for (i = 0; i < nc; i++) {
+                            answer += "&#9633; "
+                        }
+
+                        this.answers.push(answer)
+
+                        this.progressText += "<br>"
+
+
+                        if ((this.theWord == word) && this.playerName) {
+                            this.didWin = true
+                            $.get("http://impleto.com/mastersco", { who: this.playerName, word:this.theWord, number: this.gameNumber, score: this.progress.length });
+                        }
+
+                        this.currentWord = ""
+
+                        this.errorMessage = "&nbsp;"
+
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>

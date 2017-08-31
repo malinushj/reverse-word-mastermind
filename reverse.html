@@ -1,0 +1,161 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Reverse Mastermind</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+<body onload="run()">
+    <script>
+
+    var imported = document.createElement("script");
+    imported.src = "words.js";
+    document.head.appendChild(imported);
+
+    function submitWord(word) {
+        var c = 0
+        var nc = 0
+
+        for (i = 0; i < word.length; i++) {
+            if (word[i] == this.theWord[i]) {
+                c++
+            } else {
+                if (this.theWord.indexOf(word[i]) > -1) {
+                    nc++
+                }
+            }
+        }
+    }
+
+    var steps = [
+        { word: "smart", match: 0, fuzzy: 0 },
+        { word: "blink", match: 0, fuzzy: 0 },
+        { word: "dough", match: 2, fuzzy: 0 }
+
+    ]
+
+    function bestGuess(history) {
+
+        // if (!history.length) {
+        //     return "TEARS"
+        // }
+
+        var mainLetters = {}
+        var confirmed = ['d', 'o']
+
+        for (var i = 0; i < 26; i++) {
+            mainLetters[(i+10).toString(36)] = 0;
+        }
+
+        function log(a) {
+            console.log(a)
+        }
+
+        var didChange = true
+
+        while (didChange) {
+
+            let letters = $.extend(true, {}, mainLetters)
+
+            for (var i in steps) {
+                var step = steps[i]
+
+                // 0 matched 0 fuzzies
+                if (step.match == 0 && step.fuzzy == 0) {
+                    for (var i = 0; i < step.word.length; i++) {
+                        letters[step.word[i]] = -1
+                    }
+                }
+
+                // confirmed letters
+                var count = 0
+                confirmed.forEach( element => {
+                    count += (step.word.indexOf(element) >= 0)
+                })
+                if (count == step.match + step.fuzzy) {
+                    for (var i = 0; i < step.word.length; i++) {
+                        if (confirmed.indexOf(step.word[i]) < 0) {
+                            letters[step.word[i]] = -1
+                        }
+                    }
+                }
+
+                var countNot = 0
+                step.word.forEach( letter => {
+                    countNot += (letters[letter] == -1)
+                })
+
+                if (countNot == step.match + step.fuzzy) {
+                    step.word.forEach( letter => {
+                        if (letter != -1) {
+                            confirmed.push(letter)
+                        }
+                    })
+                }
+            }
+
+            didChange = false
+            Object.keys(letters).forEach( key => {
+                if (letters[key] != mainLetters[key]) {
+                    mainLetters[key] = letters[key]
+                    didChange = true
+                }
+            })
+
+        }
+
+
+
+        // find the best word based on 'letters'
+
+        var bestMatch = { word: "", score: 0 }
+
+        mainLetters.d = 1000
+
+        for (var i in commonWords) {
+            var word = commonWords[i]
+
+            if (stepsContainsWord(word)) {
+                break
+            }
+
+            var score = 0
+
+            for (var l = 0; l < word.length; l++) {
+                var letter = word[l]
+                score += (mainLetters[letter] == -1 ? -100 : mainLetters[letter])
+            }
+
+            if (bestMatch.score < score) {
+                bestMatch.word = word
+                bestMatch.score = score
+            }
+        }
+
+        log(mainLetters)
+        log(bestMatch)
+
+        function stepsContainsWord(word) {
+            for (var i in steps) {
+                if (steps[i].word == word) {
+                    return true
+                }
+            }
+            return false
+        }
+
+        var bestWord = ""
+
+
+
+        return bestWord
+    }
+
+    function run() {
+        bestGuess(steps)
+    }
+
+    </script>
+</body>
+</html>

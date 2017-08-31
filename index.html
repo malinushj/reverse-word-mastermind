@@ -1,0 +1,208 @@
+<html>
+    <head>
+        <title>Mastermind</title>
+        <link rel='shortcut icon' href='favicon.ico' type='image/x-icon' />
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.1.10/vue.min.js"></script>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+        <style>
+        .letterStatus0 {
+            background-color: #f6f6f6;
+            border: 1px solid #eee;
+        }
+        .letterStatus1 {
+            background-color: #ffcbc1;
+            border: 1px solid #f6c6b6;
+        }
+        .letterStatus2 {
+            background-color: #ffffd1;
+            border: 1px solid #f6f6c9;
+        }
+        .letterStatus3 {
+            background-color: #dbffd6;
+            border: 1px solid #d6f6d0;
+        }
+        .letterStatus4 {
+            background-color: #C2DFFF;
+            border: 1px solid #ADDFFF;
+        }
+        .letterDiv {
+            border-radius: 3px;
+            width: 2.3em;
+            float:left;
+            text-transform: uppercase;
+            text-align: center;
+            margin: 0 0 5px 5px;
+            cursor: pointer;
+            line-height: 2em;
+            font-weight: 500;
+            font-size: 1.1em;
+        }
+        .answerDiv {
+            float:left;
+            padding-left: 20px;
+            font-size: 20px;
+        }
+        .wordDiv {
+            clear:left;
+        }
+        #wordField {
+            text-transform: uppercase;
+            outline: none;
+            font-size: 1.3em;
+        }
+    </style>
+    </head>
+    <body>
+
+        <div id="app" class="form-horizontal" style="margin-top:10px; margin-left: 50px;">
+            &nbsp;<p v-html="errorMessage"></p>
+            &nbsp;<input id="wordField" v-model="currentWord" @keyup.enter="submitWord">
+            <button @click="newGame" type="submit" class="btn btn-primary" style="margin-left:20px;">New game</button> <button @click="clearColors" type="submit" class="btn btn-success" style="margin-left:20px;">Clear colors</button>&nbsp;&nbsp;&nbsp;&nbsp; {{ gameNumber > 0 ? "   Playing word # " + gameNumber : "" }}
+            <p></p>
+            <div>
+                <div class="wordDiv" v-for="(word, wordIndex) in progress">
+                    <div class="letterDiv" v-for="(letter, letterIndex) in word" v-bind:class="colorClass(letter.status)" @click="clickLetter(wordIndex, letterIndex)"> {{ letter.letter }} </div>
+                    <div class="answerDiv" v-html="answers[wordIndex]"></div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <script type="text/javascript">
+
+            var imported = document.createElement("script");
+            imported.src = "words.js";
+            document.head.appendChild(imported);
+
+            var Vue = new Vue({
+                el: "#app",
+                data: {
+                    progressText: "",
+                    progress: [],
+                    answers: [],
+                    theWord: "",
+                    currentWord: "",
+                    verse: "",
+                    errorMessage: "&nbsp;",
+                    didStart: false,
+                    gameNumber: 0,
+                    playerName: ""
+                },
+
+                computed: {
+                    hasMistake : function() {
+                        return this.didStart && (this.verse.toLowerCase() != this.mainVerse.substring(0, this.verse.length).toLowerCase() )
+                    },
+
+                    didComplete: function() {
+                        return this.didStart && this.verse.toLowerCase() == this.mainVerse.toLowerCase()
+                    }
+                },
+
+                created: function() {
+
+                },
+
+                methods: {
+                    colorClass(status) {
+                        return "letterStatus" + status
+                    },
+
+                    newGame: function() {
+                        this.gameNumber = Math.floor(Math.random() * commonWords.length)
+
+                        if (this.currentWord > 1 && this.currentWord < 366) {
+                            this.gameNumber = this.currentWord
+                        }
+
+                        this.theWord = commonWords[this.gameNumber]
+                        this.answers = []
+                        this.progress = []
+                        this.errorMessage = "&nbsp;"
+                        this.currentWord = ""
+                        this.playerName = location.search.substring(1);
+                        document.getElementById("wordField").focus()
+                    },
+
+                    clickLetter: function(wordIndex, letterIndex) {
+                        this.progress[wordIndex][letterIndex].status++;
+                        if (this.progress[wordIndex][letterIndex].status > 4) { this.progress[wordIndex][letterIndex].status = 0 }
+                        $( "#wordField" ).focus();
+                    },
+
+                    clearColors: function() {
+                        for (i = 0; i < this.progress.length; i++) {
+                            for (j = 0; j < this.progress[i].length; j++) {
+                                this.progress[i][j].status = 0
+                            }
+                        }
+                    },
+
+                    submitWord: function() {
+
+                        if (this.theWord == "") {
+                            this.gameNumber = Math.floor(Math.random() * commonWords.length)
+                            this.theWord = commonWords[this.gameNumber]
+                        }
+
+                        var c = 0
+                        var nc = 0
+
+                        var word = this.currentWord.toLowerCase()
+
+                        if (word.length != 5) {
+                            this.errorMessage = "5 letters only"
+                            return
+                        }
+
+                        if (allWords.indexOf(word) < 0) {
+                            this.errorMessage = "Only valid words with no duplicate letters"
+                            return
+                        }
+
+                        var letters = []
+
+                        for (var i = 0; i < word.length; i++) {
+                            letters.push( { letter: word[i], status: 0 } )
+                            if (word[i] == this.theWord[i]) {
+                                c++
+                            } else {
+                                if (this.theWord.indexOf(word[i]) > -1) {
+                                    nc++
+                                }
+                            }
+                        }
+
+                        this.progress.push(letters)
+
+                        var answer = ""
+
+                        this.progressText += this.currentWord.toUpperCase() + "  "
+
+                        for (i = 0; i < c; i++) {
+                            answer += "&#9632; "
+                        }
+                        for (i = 0; i < nc; i++) {
+                            answer += "&#9633; "
+                        }
+
+                        this.answers.push(answer)
+
+                        this.progressText += "<br>"
+
+                        if ((this.theWord == word) && this.playerName) {
+                            $.get("http://impleto.com/mastersco", { who: this.playerName, word:this.theWord, number: this.gameNumber, score: this.progress.length });
+                        }
+
+                        this.currentWord = ""
+
+                        this.errorMessage = "&nbsp;"
+                    }
+                }
+            })
+        </script>
+    </body>
+</html>
